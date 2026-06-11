@@ -1,6 +1,12 @@
 from pyspark.sql import SparkSession, DataFrame
 from pyspark.sql.functions import col, round as spark_round, sum as spark_sum
-from src.config import setup_logging, CUSTOMERS_FILE, PRODUCTS_FILE, ORDERS_FILE, PROCESSED_DATA_DIR
+from src.config import (
+    setup_logging,
+    CUSTOMERS_PARQUET,
+    PRODUCTS_PARQUET,
+    ORDERS_PARQUET,
+    PROCESSED_DATA_DIR,
+)
 
 logger = setup_logging(__name__)
 
@@ -22,17 +28,22 @@ def create_spark_session(app_name: str = "EcommerceAnalytics") -> SparkSession:
 
 def load_data(spark: SparkSession, filepath: str) -> DataFrame:
     """
-    Loads a CSV file into a PySpark DataFrame.
+    Loads a data file (Parquet or CSV) into a PySpark DataFrame.
 
     Args:
         spark (SparkSession): The active Spark session.
-        filepath (str): The path to the CSV file.
+        filepath (str): The path to the data file (Parquet or CSV).
 
     Returns:
         DataFrame: A PySpark DataFrame containing the loaded data.
     """
     logger.info(f"Loading data from {filepath}")
-    return spark.read.csv(str(filepath), header=True, inferSchema=True)
+    filepath_str = str(filepath).lower()
+    
+    if filepath_str.endswith(".parquet"):
+        return spark.read.parquet(filepath)
+    else:
+        return spark.read.csv(filepath, header=True, inferSchema=True)
 
 def analyze_sales_by_category(orders_df: DataFrame, products_df: DataFrame) -> DataFrame:
     """
@@ -81,9 +92,9 @@ def main() -> None:
     spark = create_spark_session()
     
     try:
-        # Load Raw Data
-        orders_df = load_data(spark, ORDERS_FILE)
-        products_df = load_data(spark, PRODUCTS_FILE)
+        # Load Raw Data (from Parquet files)
+        orders_df = load_data(spark, ORDERS_PARQUET)
+        products_df = load_data(spark, PRODUCTS_PARQUET)
         
         # Analyze Data
         category_sales_df = analyze_sales_by_category(orders_df, products_df)

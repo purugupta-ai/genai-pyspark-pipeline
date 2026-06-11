@@ -9,10 +9,24 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 RAW_DATA_DIR = BASE_DIR / "data" / "raw"
 PROCESSED_DATA_DIR = BASE_DIR / "data" / "processed"
 
-# File names
+# Data Generation Settings
+NUM_CUSTOMERS = 100_000
+NUM_PRODUCTS = 10_000
+NUM_ORDERS = 1_000_000
+
+# Spark Settings
+SPARK_MEMORY = "4g"
+SPARK_CORES = "2"
+
+# File names - CSV format (legacy support)
 CUSTOMERS_FILE = RAW_DATA_DIR / "customers.csv"
 PRODUCTS_FILE = RAW_DATA_DIR / "products.csv"
 ORDERS_FILE = RAW_DATA_DIR / "orders.csv"
+
+# File names - Parquet format (optimized for analytics)
+CUSTOMERS_PARQUET = RAW_DATA_DIR / "customers.parquet"
+PRODUCTS_PARQUET = RAW_DATA_DIR / "products.parquet"
+ORDERS_PARQUET = RAW_DATA_DIR / "orders.parquet"
 
 def setup_logging(logger_name: str) -> logging.Logger:
     """
