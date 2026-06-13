@@ -23,9 +23,6 @@ from pyspark.sql.functions import (
 
 from src.config import (
     setup_logging,
-    CUSTOMERS_PARQUET,
-    PRODUCTS_PARQUET,
-    ORDERS_PARQUET,
     PROCESSED_DATA_DIR,
 )
 from src.spark_config import SparkOptimizedConfig
@@ -114,15 +111,16 @@ class SalesAnalytics:
         if not self.spark:
             raise RuntimeError("Spark session not initialized. Call create_spark_session() first.")
         
-        filepath_str = str(filepath)
-        logger.info(f"Loading Parquet file: {filepath_str}")
+        # Use absolute POSIX path with file URI for maximum Spark compatibility
+        uri_path = f"file:///{filepath.absolute().as_posix()}"
+        logger.info(f"Loading Parquet file: {uri_path}")
         
-        if not Path(filepath_str).exists():
-            raise FileNotFoundError(f"File not found: {filepath_str}")
+        if not filepath.exists():
+            raise FileNotFoundError(f"File not found: {uri_path}")
         
         try:
-            df = self.spark.read.parquet(filepath_str)
-            logger.info(f"Loaded {df.count():,} rows from {filepath_str}")
+            df = self.spark.read.parquet(uri_path)
+            logger.info(f"Loaded {df.count():,} rows from {uri_path}")
             return df
         except Exception as e:
             logger.error(f"Failed to load Parquet file: {e}")
@@ -325,8 +323,9 @@ class SalesAnalytics:
         
         logger.info(f"Saving results to {output_path}")
         
-        # Save as Parquet (better performance and Windows compatibility)
-        df.write.mode("overwrite").parquet(str(output_path))
+        # Use file URI for saving to ensure Windows compatibility
+        uri_output_path = f"file:///{output_path.absolute().as_posix()}"
+        df.write.mode("overwrite").parquet(uri_output_path)
         
         logger.info(f"Results saved to {output_path}")
         return output_path
@@ -349,71 +348,3 @@ class SalesAnalytics:
     def __exit__(self, exc_type, exc_val, exc_tb):
         """Context manager exit."""
         self.stop_session()
-
-
-def main() -> None:
-    """
-    Main execution function to run the complete PySpark analytics pipeline.
-    
-    Demonstrates:
-    - Loading Parquet files
-    - Analyzing top customers by revenue
-    - Calculating sales by category
-    - Computing monthly trends with growth rates
-    - Saving results
-    """
-    logger.info("=" * 70)
-    logger.info("STARTING PYSPARK ANALYTICS PIPELINE")
-    logger.info("=" * 70)
-    
-    # Use context manager for automatic resource cleanup
-    with SalesAnalytics() as analytics:
-        try:
-            # Load data
-            logger.info("\nLoading data files...")
-            orders_df = analytics.load_parquet(ORDERS_PARQUET)
-            products_df = analytics.load_parquet(PRODUCTS_PARQUET)
-            
-            # Display schemas
-            logger.info("\n--- Orders Schema ---")
-            orders_df.printSchema()
-            logger.info("\n--- Products Schema ---")
-            products_df.printSchema()
-            
-            # Analysis 1: Top Customers by Revenue
-            logger.info("\n" + "=" * 70)
-            logger.info("ANALYSIS 1: TOP 10 CUSTOMERS BY REVENUE")
-            logger.info("=" * 70)
-            top_customers = analytics.top_customers_by_revenue(
-                orders_df, products_df, n=10
-            )
-            top_customers.show(10)
-            analytics.save_results(top_customers, "top_customers_by_revenue")
-            
-            # Analysis 2: Sales by Category
-            logger.info("\n" + "=" * 70)
-            logger.info("ANALYSIS 2: SALES BY CATEGORY")
-            logger.info("=" * 70)
-            category_sales = analytics.sales_by_category(orders_df, products_df)
-            category_sales.show()
-            analytics.save_results(category_sales, "sales_by_category")
-            
-            # Analysis 3: Monthly Trends
-            logger.info("\n" + "=" * 70)
-            logger.info("ANALYSIS 3: MONTHLY REVENUE TRENDS")
-            logger.info("=" * 70)
-            monthly_trends = analytics.monthly_trends(orders_df, products_df)
-            monthly_trends.show(20)
-            analytics.save_results(monthly_trends, "monthly_revenue_trends")
-            
-            logger.info("\n" + "=" * 70)
-            logger.info("✅ ANALYTICS PIPELINE COMPLETED SUCCESSFULLY")
-            logger.info("=" * 70)
-            
-        except Exception as e:
-            logger.error(f"Error during analytics pipeline: {e}", exc_info=True)
-            raise
-
-
-if __name__ == "__main__":
-    main()

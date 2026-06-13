@@ -11,13 +11,20 @@ logger = setup_logging(__name__)
 
 def main():
     """Run all analytics operations and display results with execution times."""
+    # Pre-flight check: Ensure data files exist
+    missing_files = [f for f in [CUSTOMERS_PARQUET, PRODUCTS_PARQUET, ORDERS_PARQUET] if not f.exists()]
+    if missing_files:
+        logger.error("Missing raw data files in data/raw/")
+        for f in missing_files:
+            logger.error(f"  - NOT FOUND: {f.name}")
+        print("\n[!] Error: Raw data not found. Please run 'python main.py' first to generate datasets.\n")
+        return
+
     analytics = SalesAnalytics()
-    spark = None
-    
     try:
         # Create Spark session
         logger.info("Creating Spark session...")
-        spark = analytics.create_spark_session(app_name="SalesAnalyticsRunner")
+        analytics.create_spark_session(app_name="SalesAnalyticsRunner")
         logger.info("[OK] Spark session created successfully")
         
         # Load data
@@ -34,6 +41,7 @@ def main():
         start_time = time()
         top_customers = analytics.top_customers_by_revenue(orders_df, products_df, n=10)
         execution_time = time() - start_time
+        analytics.save_results(top_customers, "top_customers_by_revenue")
         print(f"\n[TIME] Execution Time: {execution_time:.2f} seconds\n")
         top_customers.show(truncate=False)
         
@@ -44,6 +52,7 @@ def main():
         start_time = time()
         sales_by_cat = analytics.sales_by_category(orders_df, products_df)
         execution_time = time() - start_time
+        analytics.save_results(sales_by_cat, "sales_by_category")
         print(f"\n[TIME] Execution Time: {execution_time:.2f} seconds\n")
         sales_by_cat.show(truncate=False)
         
@@ -54,6 +63,7 @@ def main():
         start_time = time()
         monthly = analytics.monthly_trends(orders_df, products_df)
         execution_time = time() - start_time
+        analytics.save_results(monthly, "monthly_revenue_trends")
         print(f"\n[TIME] Execution Time: {execution_time:.2f} seconds\n")
         monthly.show(n=24, truncate=False)
         
@@ -69,9 +79,9 @@ def main():
         raise
     finally:
         # Stop Spark session
-        if spark:
+        if analytics.is_active:
             logger.info("\nStopping Spark session...")
-            spark.stop()
+            analytics.stop_session()
             logger.info("[OK] Spark session stopped")
 
 

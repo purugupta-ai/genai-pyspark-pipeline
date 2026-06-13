@@ -14,7 +14,7 @@ import pandas as pd
 from faker import Faker
 from tqdm import tqdm
 
-from src.config import setup_logging, CUSTOMERS_FILE, PRODUCTS_FILE, ORDERS_FILE, RAW_DATA_DIR
+from src.config import setup_logging
 
 logger = setup_logging(__name__)
 
@@ -306,44 +306,3 @@ class SyntheticDataGenerator:
         
         orders_df.to_csv(ORDERS_FILE, index=False)
         logger.info(f"Saved {len(orders_df):,} orders to {ORDERS_FILE}")
-
-
-def main() -> None:
-    """Main execution function to run the data generation pipeline."""
-    logger.info("Starting E-Commerce Synthetic Data Generation Pipeline")
-    
-    # Initialize generator with default parameters
-    generator = SyntheticDataGenerator(
-        num_customers=100_000,
-        num_products=10_000,
-        num_orders=1_000_000,
-    )
-    
-    # Generate all datasets
-    customers_df, products_df, orders_df = generator.generate_all()
-    
-    # Save to CSV
-    generator.save_to_csv(customers_df, products_df, orders_df)
-    
-    logger.info("E-Commerce Data Generation Pipeline Complete")
-    
-    # Print summary statistics
-    print("\n" + "=" * 60)
-    print("SYNTHETIC DATA GENERATION SUMMARY")
-    print("=" * 60)
-    print(f"Customers: {len(customers_df):,}")
-    print(f"  - Age range: {customers_df['age'].min()} - {customers_df['age'].max()}")
-    print(f"  - Date range: {customers_df['registration_date'].min()} to {customers_df['registration_date'].max()}")
-    print(f"\nProducts: {len(products_df):,}")
-    print(f"  - Price range: ${products_df['price'].min():.2f} - ${products_df['price'].max():.2f}")
-    print(f"  - Rating range: {products_df['rating'].min():.1f} - {products_df['rating'].max():.1f}")
-    print(f"  - Stock range: {products_df['stock'].min()} - {products_df['stock'].max()}")
-    print(f"\nOrders: {len(orders_df):,}")
-    print(f"  - Date range: {orders_df['order_date'].min()} to {orders_df['order_date'].max()}")
-    print(f"  - Quantity range: {orders_df['quantity'].min()} - {orders_df['quantity'].max()}")
-    print(f"  - Top 20% customers: {int(len(customers_df) * 0.2):,} (Pareto 80/20 rule)")
-    print("=" * 60 + "\n")
-
-
-if __name__ == "__main__":
-    main()

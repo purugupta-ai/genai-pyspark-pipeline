@@ -16,6 +16,9 @@ from pathlib import Path
 
 from src.config import (
     setup_logging,
+    NUM_CUSTOMERS,
+    NUM_PRODUCTS,
+    NUM_ORDERS,
     RAW_DATA_DIR,
     CUSTOMERS_PARQUET,
     PRODUCTS_PARQUET,
@@ -59,9 +62,9 @@ def main() -> int:
         # Initialize generator with default parameters
         logger.info("Initializing SyntheticDataGenerator...")
         generator = SyntheticDataGenerator(
-            num_customers=100_000,
-            num_products=10_000,
-            num_orders=1_000_000,
+            num_customers=NUM_CUSTOMERS,
+            num_products=NUM_PRODUCTS,
+            num_orders=NUM_ORDERS,
             random_seed=42,
         )
         
